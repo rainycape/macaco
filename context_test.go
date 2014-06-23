@@ -1,0 +1,138 @@
+package macaco
+
+import (
+	"bytes"
+	"reflect"
+	"testing"
+)
+
+func newTestingContext(t testing.TB) *Context {
+	ctx, err := NewContext()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return ctx
+}
+
+func TestLogging(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	ctx := newTestingContext(t)
+	ctx.Stdout = &stdout
+	ctx.Stderr = &stderr
+	if _, err := ctx.Run("M.logf('%s', 'foo'); M.errorf('%s', 'bar')"); err != nil {
+		t.Fatal(err)
+	}
+	if s1 := stdout.String(); s1 != "foo" {
+		t.Errorf("expecting stdout = \"foo\", got %q", s1)
+	}
+	if s2 := stderr.String(); s2 != "bar" {
+		t.Errorf("expecting stderr = \"bar\", got %q", s2)
+	}
+}
+
+func TestJSON(t *testing.T) {
+	ctx := newTestingContext(t)
+	// Make number float64, so its type is not altered.
+	obj := map[string]interface{}{"a": float64(1), "b": true, "c": "12345"}
+	val, err := ctx.Call("JSON.stringify", nil, obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("JSON is %s", val.String())
+	res, err := ctx.Call("JSON.parse", nil, val.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj2 := res.Interface()
+	if !reflect.DeepEqual(obj, obj2.(map[string]interface{})) {
+		t.Errorf("JSON trip altered object from %v to %v", obj, obj2)
+	}
+}
+
+func testResponseURL(t *testing.T, res *Value, expected string) {
+	url, err := res.Get("url")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if url.String() != expected {
+		t.Errorf("expecting URL %q, got %v", expected, url)
+	}
+	jsonValue, err := res.Method("toJSON")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := jsonValue.Interface()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ru := m.(map[string]interface{})["url"].(string); ru != expected {
+		t.Errorf("expecting response URL %q, got %q", expected, ru)
+	}
+}
+
+func TestHTTP(t *testing.T) {
+	const (
+		getURL  = "http://httpbin.org/get"
+		postURL = "http://httpbin.org/post"
+		qs      = "foo=bar&foo2=bar2"
+	)
+	var stdout bytes.Buffer
+	ctx := newTestingContext(t)
+	ctx.Stdout = &stdout
+	// Sync calls
+	res1, err := ctx.Call("M.http.get", nil, getURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testResponseURL(t, res1, getURL)
+	res2, err := ctx.Call("M.http.get", nil, getURL, qs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testResponseURL(t, res2, getURL+"?"+qs)
+	res3, err := ctx.Call("M.http.get", nil, getURL+"?a=b", qs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testResponseURL(t, res3, getURL+"?"+"a=b&"+qs)
+	res4, err := ctx.Call("M.http.get", nil, getURL, map[string]string{"foo": "bar", "foo2": "bar2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	testResponseURL(t, res4, getURL+"?"+qs)
+	// AsyncCall
+	stdout.Reset()
+	_, err = ctx.Call(`(function(url) {
+            M.http.post(url, function(resp) {
+                var val = resp.toJSON();
+                console.logf('%s', val.url);
+            });
+        })`, nil, postURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stdout.String() != postURL {
+		t.Errorf("expecting post URL %q, got %q", postURL, stdout.String())
+	}
+}
+
+func TestHTTPError(t *testing.T) {
+	const invalidURL = "http://this-domain-does-not-exist-because-whatever-lets-hope-no-one-registers-it.foobar"
+	ctx := newTestingContext(t)
+	res, err := ctx.Call("M.http.get", nil, invalidURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := res.Get("error")
+	if err != nil {
+		t.Fatal(err)
+	}
+	msg, err := e.Method("message")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s, ok := msg.Interface().(string); !ok || s == "" {
+		t.Error("expecting non-empty error")
+	}
+}
