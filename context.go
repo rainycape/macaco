@@ -95,12 +95,18 @@ func (c *Context) Call(src string, this interface{}, args ...interface{}) (*Valu
 }
 
 func (c *Context) Load(prog string) error {
-	values := make(url.Values)
-	values.Set("program", prog)
-	if c.Token != "" {
-		values.Set("access_token", c.Token)
+	c.Debugf("loading %s\n", prog)
+	var p string
+	if looksLikeURL(prog) {
+		p = prog
+	} else {
+		values := make(url.Values)
+		values.Set("program", prog)
+		if c.Token != "" {
+			values.Set("access_token", c.Token)
+		}
+		p = api + "/load?" + values.Encode()
 	}
-	p := api + "/load?" + values.Encode()
 	req, err := http.NewRequest("GET", p, nil)
 	if err != nil {
 		return err

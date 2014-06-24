@@ -2,6 +2,7 @@ package macaco
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -159,5 +160,39 @@ func TestGlobals(t *testing.T) {
 	}
 	if !hasNoMacaco {
 		t.Errorf("not_a_macaco not found in globals %v", ctx.Globals())
+	}
+}
+
+func TestLoadRemote(t *testing.T) {
+	const script = "http://cdnjs.cloudflare.com/ajax/libs/Base64/0.3.0/base64.min.js"
+	ctx := newTestingContext(t)
+	val1, err := ctx.Run("typeof btoa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val1.String() != "undefined" {
+		t.Fatal("btoa already defined")
+	}
+	if err := ctx.Load(script); err != nil {
+		t.Fatal(err)
+	}
+	val2, err := ctx.Run("typeof btoa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val2.String() != "function" {
+		t.Errorf("expecting typeof btoa = function, got %v", val2.Interface())
+	}
+	ctx2 := newTestingContext(t)
+	_, err = ctx2.Run(fmt.Sprintf("macaco.load(%q)", script))
+	if err != nil {
+		t.Fatal(err)
+	}
+	val3, err := ctx.Run("typeof btoa")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val3.String() != "function" {
+		t.Errorf("expecting typeof btoa = function, got %v", val3.Interface())
 	}
 }
