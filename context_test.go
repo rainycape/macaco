@@ -12,6 +12,9 @@ func newTestingContext(t testing.TB) *Context {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if testing.Verbose() {
+		ctx.Verbose = true
+	}
 	return ctx
 }
 
