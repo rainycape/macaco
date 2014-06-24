@@ -18,11 +18,11 @@ type Error struct {
 }
 
 type Context struct {
-	EnableDebug bool
-	Token       string
-	vm          *otto.Otto
-	Stdout      io.Writer
-	Stderr      io.Writer
+	Verbose bool
+	Token   string
+	Stdout  io.Writer
+	Stderr  io.Writer
+	vm      *otto.Otto
 }
 
 func NewContext() (*Context, error) {
