@@ -4,7 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
+)
+
+const (
+	remoteScript = "http://cdnjs.cloudflare.com/ajax/libs/Base64/0.3.0/base64.min.js"
 )
 
 func newTestingContext(t testing.TB) *Context {
@@ -167,7 +172,6 @@ func TestGlobals(t *testing.T) {
 }
 
 func TestLoadRemote(t *testing.T) {
-	const script = "http://cdnjs.cloudflare.com/ajax/libs/Base64/0.3.0/base64.min.js"
 	ctx := newTestingContext(t)
 	val1, err := ctx.Run("typeof btoa")
 	if err != nil {
@@ -176,7 +180,7 @@ func TestLoadRemote(t *testing.T) {
 	if val1.String() != "undefined" {
 		t.Fatal("btoa already defined")
 	}
-	if err := ctx.Load(script); err != nil {
+	if err := ctx.Load(remoteScript); err != nil {
 		t.Fatal(err)
 	}
 	val2, err := ctx.Run("typeof btoa")
@@ -187,7 +191,7 @@ func TestLoadRemote(t *testing.T) {
 		t.Errorf("expecting typeof btoa = function, got %v", val2.Interface())
 	}
 	ctx2 := newTestingContext(t)
-	_, err = ctx2.Run(fmt.Sprintf("macaco.load(%q)", script))
+	_, err = ctx2.Run(fmt.Sprintf("macaco.load(%q)", remoteScript))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,5 +201,31 @@ func TestLoadRemote(t *testing.T) {
 	}
 	if val3.String() != "function" {
 		t.Errorf("expecting typeof btoa = function, got %v", val3.Interface())
+	}
+}
+
+func TestLoadCache(t *testing.T) {
+	ctx := newTestingContext(t)
+	ctx.Verbose = true
+	var stdout bytes.Buffer
+	ctx.Stdout = &stdout
+	if err := ctx.Load(remoteScript); err != nil {
+		t.Fatal(err)
+	}
+	if err := ctx.Load(remoteScript); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(stdout.String(), "GET") > 1 {
+		t.Errorf("script downloaded multiple times: %v", stdout.String())
+	}
+	stdout.Reset()
+	ctx2 := newTestingContext(t)
+	ctx2.Verbose = true
+	ctx2.Stdout = &stdout
+	if err := ctx2.Load(remoteScript); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Count(stdout.String(), "GET") > 0 {
+		t.Errorf("script downloaded rather than loaded from disk: %v", stdout.String())
 	}
 }

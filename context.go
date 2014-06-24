@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
+	"time"
 
 	"github.com/robertkrimen/otto"
 	_ "github.com/robertkrimen/otto/underscore"
@@ -23,15 +25,24 @@ type Context struct {
 	Stdout  io.Writer
 	Stderr  io.Writer
 	vm      *otto.Otto
+	cache   *cache
 }
 
 func NewContext() (*Context, error) {
+	return newContext(newCache())
+}
+
+func newContext(c *cache) (*Context, error) {
 	vm := otto.New()
 	ctx := &Context{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		vm:     vm,
 	}
+	if c == nil {
+		c = newCache()
+	}
+	ctx.cache = c
 	if err := ctx.loadRuntime(); err != nil {
 		return nil, err
 	}
@@ -107,10 +118,22 @@ func (c *Context) Load(prog string) error {
 		}
 		p = api + "/load?" + values.Encode()
 	}
+	entry, script := c.cache.getCachedScript(p)
+	if script != nil {
+		if _, err := c.vm.Run(script); err == nil {
+			return nil
+		}
+	}
+	if entry != nil && len(entry.Data) > 0 {
+		if c.loadData(p, entry.Data, entry.Headers, entry) == nil {
+			return nil
+		}
+	}
 	req, err := http.NewRequest("GET", p, nil)
 	if err != nil {
 		return err
 	}
+	c.Debugf("GET %s\n", p)
 	resp, err := c.httpClient().Do(req)
 	if err != nil {
 		return err
@@ -123,8 +146,25 @@ func (c *Context) Load(prog string) error {
 	if err != nil {
 		return err
 	}
-	_, err = c.Run(data)
-	return err
+	return c.loadData(p, data, resp.Header, nil)
+}
+
+func (c *Context) loadData(url string, data []byte, headers http.Header, entry *diskEntry) error {
+	script, err := c.vm.Compile(path.Base(url), data)
+	if err != nil {
+		return err
+	}
+	if _, err := c.vm.Run(script); err != nil {
+		return err
+	}
+	var expires time.Time
+	if entry != nil {
+		expires = entry.Expires
+	}
+	if err := c.cache.cacheScript(url, data, headers, script, expires); err != nil {
+		c.Debugf("error caching script %s: %s\n", url, err)
+	}
+	return nil
 }
 
 func (c *Context) Globals() []string {
