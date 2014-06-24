@@ -136,3 +136,28 @@ func TestHTTPError(t *testing.T) {
 		t.Error("expecting non-empty error")
 	}
 }
+
+func TestGlobals(t *testing.T) {
+	ctx := newTestingContext(t)
+	hasMacaco := false
+	for _, v := range ctx.Globals() {
+		if v == "macaco" {
+			hasMacaco = true
+			break
+		}
+	}
+	if !hasMacaco {
+		t.Errorf("macaco not found in globals %v", ctx.Globals())
+	}
+	ctx.Run("not_a_macaco = {}")
+	hasNoMacaco := false
+	for _, v := range ctx.Globals() {
+		if v == "not_a_macaco" {
+			hasNoMacaco = true
+			break
+		}
+	}
+	if !hasNoMacaco {
+		t.Errorf("not_a_macaco not found in globals %v", ctx.Globals())
+	}
+}

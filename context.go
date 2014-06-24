@@ -121,6 +121,20 @@ func (c *Context) Load(prog string) error {
 	return err
 }
 
+func (c *Context) Globals() []string {
+	val, err := c.vm.Call("(function() { return Object.keys(this); })", nil)
+	if err != nil {
+		panic(err)
+	}
+	v, _ := val.Export()
+	names := v.([]interface{})
+	globals := make([]string, len(names))
+	for ii, n := range names {
+		globals[ii] = n.(string)
+	}
+	return globals
+}
+
 func (c *Context) mustCallValue(src string, this interface{}, args ...interface{}) *Value {
 	val, err := c.Call(src, this, args...)
 	if err != nil {
