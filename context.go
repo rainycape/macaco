@@ -49,13 +49,6 @@ func newContext(c *cache) (*Context, error) {
 	return ctx, nil
 }
 
-func (c *Context) ctx() *Context {
-	// Return the real context in the current vm, since
-	// Copying the vm will cause the closures to point
-	// to the old context.
-	return c
-}
-
 func (c *Context) loadRuntime() error {
 	obj, _ := c.vm.Object("M = macaco = {}")
 	c.loadLogging(obj)
@@ -75,6 +68,18 @@ func (c *Context) newObject() *otto.Object {
 
 func (c *Context) errObject(err error) *Value {
 	return c.mustCallValue("new M.Error", nil, &Error{Message: err.Error()})
+}
+
+func (c *Context) Copy() *Context {
+	cpy := *c
+	cpy.vm = cpy.vm.Copy()
+	// Reload the runtime so the closures and method values
+	// point to the right *Context.
+	// This error should never happen, but just in case...
+	if err := cpy.loadRuntime(); err != nil {
+		panic(err)
+	}
+	return &cpy
 }
 
 func (c *Context) Run(src interface{}) (*Value, error) {

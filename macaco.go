@@ -18,7 +18,51 @@ const (
 )
 
 type Macaco struct {
-	Token string
+	Token   string
+	Verbose bool
+	ctx     *Context
+}
+
+func New() (*Macaco, error) {
+	ctx, err := newContext(nil)
+	if err != nil {
+		return nil, err
+	}
+	return &Macaco{ctx: ctx}, nil
+}
+
+func (m *Macaco) Context() *Context {
+	ctx := m.ctx.Copy()
+	ctx.Token = m.Token
+	ctx.Verbose = m.Verbose
+	return ctx
+}
+
+func (m *Macaco) loadFiles(prog string) error {
+	files, err := ListProgramFiles(prog)
+	if err != nil {
+		return err
+	}
+	if len(files) == 0 {
+		return fmt.Errorf("no valid files found at %s", prog)
+	}
+	for _, v := range files {
+		data, err := ioutil.ReadFile(v)
+		if err != nil {
+			return err
+		}
+		if _, err := m.ctx.Run(data); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *Macaco) Load(prog string) error {
+	if _, err := os.Stat(prog); err == nil {
+		return m.loadFiles(prog)
+	}
+	return m.ctx.Load(prog)
 }
 
 func (m *Macaco) Upload(name string, src interface{}) error {
@@ -33,29 +77,29 @@ func (m *Macaco) Upload(name string, src interface{}) error {
 	case string:
 		var buf bytes.Buffer
 		w := zip.NewWriter(&buf)
-		err := filepath.Walk(x, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() {
-				return nil
-			}
-			f, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			fw, err := w.Create(filepath.ToSlash(path))
-			if err != nil {
-				return err
-			}
-			if _, err := io.Copy(fw, f); err != nil {
-				return err
-			}
-			return nil
-		})
+		files, err := ListProgramFiles(x)
 		if err != nil {
 			return err
+		}
+		for _, v := range files {
+			err := func() error {
+				f, err := os.Open(v)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				fw, err := w.Create(filepath.ToSlash(v))
+				if err != nil {
+					return err
+				}
+				if _, err := io.Copy(fw, f); err != nil {
+					return err
+				}
+				return nil
+			}()
+			if err != nil {
+				return err
+			}
 		}
 		if err := w.Close(); err != nil {
 			return err
