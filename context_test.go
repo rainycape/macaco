@@ -3,6 +3,7 @@ package macaco
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -227,5 +228,47 @@ func TestLoadCache(t *testing.T) {
 	}
 	if strings.Count(stdout.String(), "GET") > 0 {
 		t.Errorf("script downloaded rather than loaded from disk: %v", stdout.String())
+	}
+}
+
+func TestTests(t *testing.T) {
+	ctx := newTestingContext(t)
+	_, err := ctx.Run(`
+	    function __testA() {
+		console.log('a');
+	    }
+	    function __testB() {
+		console.error('b');
+	    }
+	`)
+	if !testing.Verbose() {
+		ctx.Stdout = ioutil.Discard
+		ctx.Stderr = ioutil.Discard
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	results, err := ctx.RunTests()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 2 {
+		t.Fatalf("expecting 2 results, got %d", len(results))
+	}
+	ta, tb := results[0], results[1]
+	if ta.Name != "A" {
+		t.Errorf("expecting first test name A, got %q", ta.Name)
+	}
+	if !ta.Passed() {
+		t.Error("test A not passed")
+	}
+	if tb.Name != "B" {
+		t.Errorf("expecting second test name B, got %q", tb.Name)
+	}
+	if tb.Passed() {
+		t.Error("test B not passed")
+	}
+	if len(tb.Errors) != 1 {
+		t.Errorf("expecting one error in test B, got %d", len(tb.Errors))
 	}
 }

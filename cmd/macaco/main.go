@@ -75,7 +75,24 @@ func main() {
 			fmt.Printf("result %v\n", val.Interface())
 		}
 	case *test:
-		panic("unimplemented")
+		results, err := mc.Context().RunTests()
+		if err != nil {
+			panic(err)
+		}
+		passed := 0
+		failed := 0
+		for _, v := range results {
+			if v.Passed() {
+				passed++
+			} else {
+				failed++
+			}
+		}
+		fmt.Printf("%d tests passed, %d tests failed", passed, failed)
+		if !mc.Verbose {
+			fmt.Print(" - run with -v for more details")
+		}
+		fmt.Print("\n")
 	case *upload:
 		n := *name
 		if n == "" {

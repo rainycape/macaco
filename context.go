@@ -1,6 +1,7 @@
 package macaco
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/robertkrimen/otto"
@@ -199,6 +201,65 @@ func (c *Context) Get(name string) (*Value, error) {
 		return nil, err
 	}
 	return &Value{v, c.vm}, nil
+}
+
+func (c *Context) RunTests() ([]*Test, error) {
+	const testPrefix = "__test"
+	defer func(stdout, stderr io.Writer) {
+		c.Stdout = stdout
+		c.Stderr = stderr
+	}(c.Stdout, c.Stderr)
+	stdout, stderr := c.Stdout, c.Stderr
+	var tests []*Test
+	var testStdout bytes.Buffer
+	for _, name := range c.Globals() {
+		if !strings.HasPrefix(name, testPrefix) {
+			continue
+		}
+		val, err := c.Get(name)
+		if err != nil {
+			return nil, err
+		}
+		if val.IsFunction() {
+			testStdout.Reset()
+			t := new(Test)
+			t.Name = strings.TrimPrefix(name, testPrefix)
+			if c.Verbose {
+				fmt.Fprintln(stdout, "TEST:", t.Name)
+			}
+			w := t.stderrWriter()
+			c.Stdout = &testStdout
+			c.Stderr = w
+			if c.Verbose {
+				c.Stdout = io.MultiWriter(c.Stdout, os.Stdout)
+				c.Stderr = io.MultiWriter(c.Stderr, os.Stderr)
+			}
+			t.Started = time.Now()
+			_, err := val.Call(nil)
+			if err != nil {
+				oe, ok := err.(*otto.Error)
+				if !ok {
+					return nil, err
+				}
+				t.Errors = append(t.Errors, &TestError{Message: oe.String(), Timestamp: time.Now()})
+			}
+			t.Finished = time.Now()
+			t.Stdout = testStdout.String()
+			t.Stderr = w.String()
+			tests = append(tests, t)
+			if t.Passed() {
+				if c.Verbose {
+					fmt.Fprintf(stdout, "PASS: %s (%s)\n", t.Name, t.Elapsed())
+				}
+			} else {
+				fmt.Fprintf(stderr, "FAIL: %s (%s)\n", t.Name, t.Elapsed())
+				for _, v := range t.Errors {
+					fmt.Fprintf(stderr, "\terror: %s (at %s)\n", v.Message, v.Timestamp.Sub(t.Started))
+				}
+			}
+		}
+	}
+	return tests, nil
 }
 
 func (c *Context) mustCallValue(src string, this interface{}, args ...interface{}) *Value {
