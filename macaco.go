@@ -51,7 +51,14 @@ func (m *Macaco) loadFiles(prog string) error {
 		if err != nil {
 			return err
 		}
-		if _, err := m.ctx.Run(data); err != nil {
+		if m.Verbose {
+			fmt.Println("compiling", v)
+		}
+		script, err := m.ctx.vm.Compile(v, data)
+		if err != nil {
+			return err
+		}
+		if _, err := m.ctx.vm.Run(script); err != nil {
 			return err
 		}
 	}
