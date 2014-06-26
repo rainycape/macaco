@@ -117,21 +117,32 @@ func (v *Value) Set(name string, value interface{}) error {
 	return fmt.Errorf("value %v is not an object", v)
 }
 
+func (v *Value) prepareArguments(this interface{}, args []interface{}) (otto.Value, []interface{}, error) {
+	thisValue, err := v.vm.ToValue(this)
+	if err != nil {
+		return otto.Value{}, nil, err
+	}
+	var argValues []interface{}
+	if len(args) > 0 {
+		argValues := make([]interface{}, len(args))
+		for ii, item := range args {
+			v, err := v.vm.ToValue(item)
+			if err != nil {
+				return otto.Value{}, nil, err
+			}
+			argValues[ii] = v
+		}
+	}
+	return thisValue, argValues, nil
+}
+
 func (v *Value) Call(this interface{}, args ...interface{}) (*Value, error) {
 	if v.IsFunction() {
-		thisVal, err := v.vm.ToValue(this)
+		thisValue, argValues, err := v.prepareArguments(this, args)
 		if err != nil {
 			return nil, err
 		}
-		argVals := make([]interface{}, len(args))
-		for ii, item := range args {
-			argVal, err := v.vm.ToValue(item)
-			if err != nil {
-				return nil, err
-			}
-			argVals[ii] = argVal
-		}
-		val, err := v.val.Call(thisVal, argVals)
+		val, err := v.val.Call(thisValue, argValues...)
 		if err != nil {
 			return nil, err
 		}
@@ -142,15 +153,11 @@ func (v *Value) Call(this interface{}, args ...interface{}) (*Value, error) {
 
 func (v *Value) Method(name string, args ...interface{}) (*Value, error) {
 	if v.IsObject() {
-		argVals := make([]interface{}, len(args))
-		for ii, item := range args {
-			argVal, err := v.vm.ToValue(item)
-			if err != nil {
-				return nil, err
-			}
-			argVals[ii] = argVal
+		_, argValues, err := v.prepareArguments(nil, args)
+		if err != nil {
+			return nil, err
 		}
-		val, err := v.val.Object().Call(name, argVals...)
+		val, err := v.val.Object().Call(name, argValues...)
 		if err != nil {
 			return nil, err
 		}
