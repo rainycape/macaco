@@ -193,6 +193,14 @@ func (c *Context) Globals() []string {
 	return globals
 }
 
+func (c *Context) Get(name string) (*Value, error) {
+	v, err := c.vm.Get(name)
+	if err != nil {
+		return nil, err
+	}
+	return &Value{v, c.vm}, nil
+}
+
 func (c *Context) mustCallValue(src string, this interface{}, args ...interface{}) *Value {
 	val, err := c.Call(src, this, args...)
 	if err != nil {
