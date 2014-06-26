@@ -43,18 +43,24 @@ func newContext(c *cache) (*Context, error) {
 		c = newCache()
 	}
 	ctx.cache = c
-	if err := ctx.loadRuntime(); err != nil {
+	if err := ctx.loadRuntime(true); err != nil {
 		return nil, err
 	}
 	return ctx, nil
 }
 
-func (c *Context) loadRuntime() error {
-	obj, _ := c.vm.Object("M = macaco = {}")
+func (c *Context) loadRuntime(remote bool) error {
+	obj, err := c.vm.Object("M = macaco = (this.macaco || {})")
+	if err != nil {
+		return err
+	}
 	c.loadLogging(obj)
 	c.loadHTTP(obj)
 	c.loadJSON()
 	obj.Set("load", c.Load)
+	if !remote {
+		return nil
+	}
 	return c.Load("macaco/runtime")
 }
 
@@ -74,9 +80,10 @@ func (c *Context) Copy() *Context {
 	cpy := *c
 	cpy.vm = cpy.vm.Copy()
 	// Reload the runtime so the closures and method values
-	// point to the right *Context.
+	// point to the right *Context. Don't reload the js runtime,
+	// since that part does not have closures.
 	// This error should never happen, but just in case...
-	if err := cpy.loadRuntime(); err != nil {
+	if err := cpy.loadRuntime(false); err != nil {
 		panic(err)
 	}
 	return &cpy
