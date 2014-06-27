@@ -67,8 +67,8 @@ func (c *Context) loadRuntime(remote bool) error {
 	return c.Load("macaco/runtime")
 }
 
-func (c *Context) newObject() *otto.Object {
-	obj, err := c.vm.Object("new Object()")
+func (c *Context) newMacacoObject(name string) *otto.Object {
+	obj, err := c.vm.Object(fmt.Sprintf("macaco.%s = macaco.%s || new Object()", name, name))
 	if err != nil {
 		panic(err)
 	}

@@ -42,13 +42,15 @@ func (c *Context) loadLogging(obj *otto.Object) {
 	obj.Set("error", c.Error)
 	obj.Set("errorf", c.Errorf)
 
-	console := c.newObject()
+	console, err := c.vm.Object("this.console = this.console || new Object()")
+	if err != nil {
+		panic(err)
+	}
 	console.Set("debug", c.Debug)
 	console.Set("debugf", c.Debugf)
 	console.Set("log", c.Log)
 	console.Set("logf", c.Logf)
 	console.Set("error", c.Error)
 	console.Set("errorf", c.Errorf)
-	c.vm.Set("console", console)
 
 }

@@ -116,11 +116,10 @@ func (c *Context) httpClient() *http.Client {
 }
 
 func (c *Context) loadHTTP(obj *otto.Object) {
-	httpObj := c.newObject()
+	httpObj := c.newMacacoObject("http")
 	httpObj.Set("request", c.httpRequest)
 	httpObj.Set("get", c.httpGet)
 	httpObj.Set("post", c.httpPost)
-	obj.Set("http", httpObj)
 }
 
 func validateHTTPResponse(resp *http.Response) error {

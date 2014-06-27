@@ -7,7 +7,6 @@ import (
 )
 
 func (c *Context) loadFmt(obj *otto.Object) {
-	fmtObj := c.newObject()
+	fmtObj := c.newMacacoObject("fmt")
 	fmtObj.Set("sprintf", fmt.Sprintf)
-	obj.Set("fmt", fmtObj)
 }
