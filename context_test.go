@@ -272,3 +272,17 @@ func TestTests(t *testing.T) {
 		t.Errorf("expecting one error in test B, got %d", len(tb.Errors))
 	}
 }
+
+func TestSprintf(t *testing.T) {
+	const expect = "a = a, b = 1"
+	ctx := newTestingContext(t)
+	res, err := ctx.Run(`
+	    macaco.fmt.sprintf('a = %s, b = %d', 'a', 1);
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.String() != expect {
+		t.Errorf("expecting %q, got %q instead", expect, res.String())
+	}
+}

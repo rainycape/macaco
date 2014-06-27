@@ -59,6 +59,7 @@ func (c *Context) loadRuntime(remote bool) error {
 	c.loadLogging(obj)
 	c.loadHTTP(obj)
 	c.loadJSON()
+	c.loadFmt(obj)
 	obj.Set("load", c.Load)
 	if !remote {
 		return nil
