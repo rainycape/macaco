@@ -62,6 +62,7 @@ func (c *Context) loadRuntime(remote bool) error {
 	c.loadHTML(obj)
 	c.loadJSON()
 	c.loadFmt(obj)
+	c.loadImage(obj)
 	obj.Set("load", c.Load)
 	if !remote {
 		return nil
