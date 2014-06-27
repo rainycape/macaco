@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 
 	"macaco"
@@ -16,6 +17,7 @@ var (
 	name        = flag.String("name", "", "Used with upload to set the program name")
 	run         = flag.Bool("run", false, "Run the program. First argument is the function name, then its arguments")
 	test        = flag.Bool("test", false, "Run tests in the program")
+	tests       = flag.String("tests", "", "Only run tests with names that match this pattern")
 	verbose     = flag.Bool("v", false, "Verbose output")
 )
 
@@ -75,7 +77,15 @@ func main() {
 			fmt.Printf("result %v\n", val.Interface())
 		}
 	case *test:
-		results, err := mc.Context().RunTests()
+		var re *regexp.Regexp
+		if *tests != "" {
+			re, err = regexp.Compile(*tests)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid pattern %q: %s\n", *tests, err)
+				os.Exit(1)
+			}
+		}
+		results, err := mc.Context().RunTests(re)
 		if err != nil {
 			panic(err)
 		}

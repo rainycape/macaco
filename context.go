@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -205,7 +206,7 @@ func (c *Context) Get(name string) (*Value, error) {
 	return &Value{v, c.vm}, nil
 }
 
-func (c *Context) RunTests() ([]*Test, error) {
+func (c *Context) RunTests(re *regexp.Regexp) ([]*Test, error) {
 	const testPrefix = "__test"
 	defer func(stdout, stderr io.Writer) {
 		c.Stdout = stdout
@@ -218,6 +219,10 @@ func (c *Context) RunTests() ([]*Test, error) {
 		if !strings.HasPrefix(name, testPrefix) {
 			continue
 		}
+		tname := strings.TrimPrefix(name, testPrefix)
+		if re != nil && !re.MatchString(tname) {
+			continue
+		}
 		val, err := c.Get(name)
 		if err != nil {
 			return nil, err
@@ -225,7 +230,7 @@ func (c *Context) RunTests() ([]*Test, error) {
 		if val.IsFunction() {
 			testStdout.Reset()
 			t := new(Test)
-			t.Name = strings.TrimPrefix(name, testPrefix)
+			t.Name = tname
 			if c.Verbose {
 				fmt.Fprintln(stdout, "TEST:", t.Name)
 			}
