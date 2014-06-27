@@ -90,6 +90,7 @@ func TestHTTP(t *testing.T) {
 	var stdout bytes.Buffer
 	ctx := newTestingContext(t)
 	ctx.Stdout = &stdout
+	ctx.Verbose = false
 	// Sync calls
 	res1, err := ctx.Call("M.http.get", nil, getURL)
 	if err != nil {
