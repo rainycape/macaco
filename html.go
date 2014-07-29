@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"code.google.com/p/go.net/html"
-	"github.com/robertkrimen/otto"
+	"github.com/rainycape/otto"
 )
 
 const (

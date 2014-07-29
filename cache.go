@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/robertkrimen/otto"
+	"github.com/rainycape/otto"
 )
 
 var (

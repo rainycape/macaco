@@ -3,7 +3,7 @@ package macaco
 import (
 	"encoding/json"
 
-	"github.com/robertkrimen/otto"
+	"github.com/rainycape/otto"
 )
 
 func (c *Context) jsonParse(call otto.FunctionCall) otto.Value {

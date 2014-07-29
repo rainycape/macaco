@@ -8,7 +8,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/robertkrimen/otto"
+	"github.com/rainycape/otto"
 )
 
 type _image struct {

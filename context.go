@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robertkrimen/otto"
-	_ "github.com/robertkrimen/otto/underscore"
+	"github.com/rainycape/otto"
+	_ "github.com/rainycape/otto/underscore"
 )
 
 type Error struct {

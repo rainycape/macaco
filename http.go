@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/robertkrimen/otto"
+	"github.com/rainycape/otto"
 )
 
 type readerCloser struct {

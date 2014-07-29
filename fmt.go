@@ -3,7 +3,7 @@ package macaco
 import (
 	"fmt"
 
-	"github.com/robertkrimen/otto"
+	"github.com/rainycape/otto"
 )
 
 func (c *Context) loadFmt(obj *otto.Object) {
