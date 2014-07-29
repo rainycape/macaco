@@ -23,12 +23,23 @@ type Macaco struct {
 	ctx     *Context
 }
 
-func New() (*Macaco, error) {
-	ctx, err := newContext(nil)
+func newMacaco(bare bool) (*Macaco, error) {
+	ctx, err := newContext(nil, !bare)
 	if err != nil {
 		return nil, err
 	}
 	return &Macaco{ctx: ctx}, nil
+}
+
+func New() (*Macaco, error) {
+	return newMacaco(false)
+}
+
+// NewBare returns a bare macaco runtime, with no JS runtime
+// loaded. Users should rarely use this function and should
+// prefer New most of the time.
+func NewBare() (*Macaco, error) {
+	return newMacaco(true)
 }
 
 func (m *Macaco) Context() *Context {

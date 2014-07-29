@@ -32,10 +32,10 @@ type Context struct {
 }
 
 func NewContext() (*Context, error) {
-	return newContext(newCache())
+	return newContext(newCache(), true)
 }
 
-func newContext(c *cache) (*Context, error) {
+func newContext(c *cache, remote bool) (*Context, error) {
 	vm := otto.New()
 	ctx := &Context{
 		Stdout: os.Stdout,
@@ -46,7 +46,7 @@ func newContext(c *cache) (*Context, error) {
 		c = newCache()
 	}
 	ctx.cache = c
-	if err := ctx.loadRuntime(true); err != nil {
+	if err := ctx.loadRuntime(remote); err != nil {
 		return nil, err
 	}
 	return ctx, nil
