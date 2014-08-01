@@ -19,7 +19,7 @@ func newTestingContext(t testing.TB) *Context {
 		t.Fatal(err)
 	}
 	if testing.Verbose() {
-		ctx.Verbose = true
+		ctx.verbose = true
 	}
 	return ctx
 }
@@ -90,7 +90,7 @@ func TestHTTP(t *testing.T) {
 	var stdout bytes.Buffer
 	ctx := newTestingContext(t)
 	ctx.Stdout = &stdout
-	ctx.Verbose = false
+	ctx.verbose = false
 	// Sync calls
 	res1, err := ctx.Call("M.http.get", nil, getURL)
 	if err != nil {
@@ -208,7 +208,7 @@ func TestLoadRemote(t *testing.T) {
 
 func TestLoadCache(t *testing.T) {
 	ctx := newTestingContext(t)
-	ctx.Verbose = true
+	ctx.verbose = true
 	var stdout bytes.Buffer
 	ctx.Stdout = &stdout
 	if err := ctx.Load(remoteScript); err != nil {
@@ -222,7 +222,7 @@ func TestLoadCache(t *testing.T) {
 	}
 	stdout.Reset()
 	ctx2 := newTestingContext(t)
-	ctx2.Verbose = true
+	ctx2.verbose = true
 	ctx2.Stdout = &stdout
 	if err := ctx2.Load(remoteScript); err != nil {
 		t.Fatal(err)
@@ -249,7 +249,7 @@ func TestTests(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	results, err := ctx.RunTests()
+	results, err := ctx.RunTests(nil)
 	if err != nil {
 		t.Fatal(err)
 	}

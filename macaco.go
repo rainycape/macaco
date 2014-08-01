@@ -17,36 +17,55 @@ const (
 	api = "http://macaco.io/api/v1"
 )
 
-type Macaco struct {
+type Options struct {
+	// When bare is true, no JS runtime is loaded and the Runtime
+	// field is ignored.
+	Bare bool
+	// The runtime to load. If empty defaults to "macaco/runtime"
+	Runtime string
+	// Token is the macaco API token used with
 	Token   string
 	Verbose bool
+}
+
+type Macaco struct {
+	token   string
+	verbose bool
 	ctx     *Context
 }
 
-func newMacaco(bare bool) (*Macaco, error) {
-	ctx, err := newContext(nil, !bare)
+func New(opts *Options) (*Macaco, error) {
+	ctx, err := NewContext()
 	if err != nil {
 		return nil, err
 	}
-	return &Macaco{ctx: ctx}, nil
-}
-
-func New() (*Macaco, error) {
-	return newMacaco(false)
-}
-
-// NewBare returns a bare macaco runtime, with no JS runtime
-// loaded. Users should rarely use this function and should
-// prefer New most of the time.
-func NewBare() (*Macaco, error) {
-	return newMacaco(true)
+	mc := &Macaco{ctx: ctx}
+	runtime := "macaco/runtime"
+	bare := false
+	if opts != nil {
+		bare = opts.Bare
+		if opts.Runtime != "" {
+			runtime = opts.Runtime
+		}
+		mc.token = opts.Token
+		mc.ctx.token = opts.Token
+		mc.verbose = opts.Verbose
+		mc.ctx.verbose = opts.Verbose
+	}
+	if !bare {
+		if err := mc.Load(runtime); err != nil {
+			return nil, err
+		}
+	}
+	return mc, nil
 }
 
 func (m *Macaco) Context() *Context {
-	ctx := m.ctx.Copy()
-	ctx.Token = m.Token
-	ctx.Verbose = m.Verbose
-	return ctx
+	return m.ctx.Copy()
+}
+
+func (m *Macaco) Verbose() bool {
+	return m.verbose
 }
 
 func (m *Macaco) loadFiles(prog string) error {
@@ -62,7 +81,7 @@ func (m *Macaco) loadFiles(prog string) error {
 		if err != nil {
 			return err
 		}
-		if m.Verbose {
+		if m.verbose {
 			fmt.Println("compiling", v)
 		}
 		script, err := m.ctx.vm.Compile(v, data)
@@ -87,7 +106,7 @@ func (m *Macaco) Upload(name string, src interface{}) error {
 	if !ProgramNameIsValid(name) {
 		return fmt.Errorf("program name %q is not valid", name)
 	}
-	if m.Token == "" {
+	if m.token == "" {
 		return errors.New("can't upload without access_token")
 	}
 	var data []byte
@@ -139,7 +158,7 @@ func (m *Macaco) Upload(name string, src interface{}) error {
 	}
 	values := make(url.Values)
 	values.Set("name", name)
-	values.Set("access_token", m.Token)
+	values.Set("access_token", m.token)
 	p := api + "/upload?" + values.Encode()
 	resp, err := http.Post(p, "application/zip", bytes.NewReader(data))
 	if err != nil {

@@ -22,19 +22,19 @@ type Error struct {
 }
 
 type Context struct {
-	Verbose bool
-	Token   string
 	Stdout  io.Writer
 	Stderr  io.Writer
+	verbose bool
+	token   string
 	vm      *otto.Otto
 	cache   *cache
 }
 
 func NewContext() (*Context, error) {
-	return newContext(newCache(), true)
+	return newContext(nil)
 }
 
-func newContext(c *cache, remote bool) (*Context, error) {
+func newContext(c *cache) (*Context, error) {
 	vm := otto.New()
 	ctx := &Context{
 		Stdout: os.Stdout,
@@ -45,13 +45,13 @@ func newContext(c *cache, remote bool) (*Context, error) {
 		c = newCache()
 	}
 	ctx.cache = c
-	if err := ctx.loadRuntime(remote); err != nil {
+	if err := ctx.loadRuntime(); err != nil {
 		return nil, err
 	}
 	return ctx, nil
 }
 
-func (c *Context) loadRuntime(remote bool) error {
+func (c *Context) loadRuntime() error {
 	obj, err := c.vm.Object("M = macaco = (this.macaco || {})")
 	if err != nil {
 		return err
@@ -63,10 +63,7 @@ func (c *Context) loadRuntime(remote bool) error {
 	c.loadFmt(obj)
 	c.loadImage(obj)
 	obj.Set("load", c.Load)
-	if !remote {
-		return nil
-	}
-	return c.Load("macaco/runtime")
+	return nil
 }
 
 func (c *Context) newMacacoObject(name string) *otto.Object {
@@ -88,7 +85,7 @@ func (c *Context) Copy() *Context {
 	// point to the right *Context. Don't reload the js runtime,
 	// since that part does not have closures.
 	// This error should never happen, but just in case...
-	if err := cpy.loadRuntime(false); err != nil {
+	if err := cpy.loadRuntime(); err != nil {
 		panic(err)
 	}
 	return &cpy
@@ -130,8 +127,8 @@ func (c *Context) Load(prog string) error {
 	} else {
 		values := make(url.Values)
 		values.Set("program", prog)
-		if c.Token != "" {
-			values.Set("access_token", c.Token)
+		if c.token != "" {
+			values.Set("access_token", c.token)
 		}
 		p = api + "/load?" + values.Encode()
 	}
@@ -231,13 +228,13 @@ func (c *Context) RunTests(re *regexp.Regexp) ([]*Test, error) {
 			testStdout.Reset()
 			t := new(Test)
 			t.Name = tname
-			if c.Verbose {
+			if c.verbose {
 				fmt.Fprintln(stdout, "TEST:", t.Name)
 			}
 			w := t.stderrWriter()
 			c.Stdout = &testStdout
 			c.Stderr = w
-			if c.Verbose {
+			if c.verbose {
 				c.Stdout = io.MultiWriter(c.Stdout, os.Stdout)
 				c.Stderr = io.MultiWriter(c.Stderr, os.Stderr)
 			}
@@ -255,7 +252,7 @@ func (c *Context) RunTests(re *regexp.Regexp) ([]*Test, error) {
 			t.Stderr = w.String()
 			tests = append(tests, t)
 			if t.Passed() {
-				if c.Verbose {
+				if c.verbose {
 					fmt.Fprintf(stdout, "PASS: %s (%s)\n", t.Name, t.Elapsed())
 				}
 			} else {

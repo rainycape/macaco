@@ -47,7 +47,7 @@ func testCommand(args []string, opts *testOptions) error {
 		}
 	}
 	fmt.Printf("%d tests passed, %d tests failed", passed, failed)
-	if !mc.Verbose {
+	if !mc.Verbose() {
 		fmt.Print(" - run with -v for more details")
 	}
 	fmt.Print("\n")

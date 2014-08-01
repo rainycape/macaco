@@ -7,13 +7,13 @@ import (
 )
 
 func (c *Context) Debug(args ...interface{}) {
-	if c.Verbose {
+	if c.verbose {
 		fmt.Fprintln(c.Stdout, args...)
 	}
 }
 
 func (c *Context) Debugf(format string, args ...interface{}) {
-	if c.Verbose {
+	if c.verbose {
 		fmt.Fprintf(c.Stdout, format, args...)
 	}
 }

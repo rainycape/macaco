@@ -19,14 +19,8 @@ type globalOptions struct {
 	Verbose bool   `name:"v" help:"Verbose output"`
 }
 
-func newMacaco(bare bool) *macaco.Macaco {
-	var m *macaco.Macaco
-	var err error
-	if bare {
-		m, err = macaco.NewBare()
-	} else {
-		m, err = macaco.New()
-	}
+func newMacaco(opts *macaco.Options) *macaco.Macaco {
+	m, err := macaco.New(opts)
 	if err != nil {
 		panic(err)
 	}
@@ -59,9 +53,12 @@ func main() {
 	opts := &command.Options{
 		Options: &globalOptions{},
 		Func: func(opts *globalOptions) {
-			mc = newMacaco(opts.Bare)
-			mc.Token = opts.Token
-			mc.Verbose = opts.Verbose
+			mopts := &macaco.Options{
+				Bare:    opts.Bare,
+				Token:   opts.Token,
+				Verbose: opts.Verbose,
+			}
+			mc = newMacaco(mopts)
 		},
 	}
 	command.Exit(command.RunOpts(nil, opts, commands))
