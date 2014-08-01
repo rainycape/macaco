@@ -2,7 +2,9 @@ package macaco
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/rainycape/otto"
 )
@@ -192,4 +194,104 @@ func (v *Value) Interface() interface{} {
 	}
 	iface, _ := v.val.Export()
 	return iface
+}
+
+func (v *Value) exportInto(val reflect.Value, jsVal otto.Value) error {
+	switch val.Kind() {
+	case reflect.Bool:
+		vv, err := jsVal.ToBoolean()
+		if err != nil {
+			return fmt.Errorf("error converting to bool: %s", err)
+		}
+		val.SetBool(vv)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		vv, err := jsVal.ToInteger()
+		if err != nil {
+			return fmt.Errorf("error converting to integer: %s", err)
+		}
+		val.SetInt(vv)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		vv, err := jsVal.ToInteger()
+		if err != nil {
+			return fmt.Errorf("error converting to integer: %s", err)
+		}
+		val.SetUint(uint64(vv))
+	case reflect.Float32, reflect.Float64:
+		vv, err := jsVal.ToFloat()
+		if err != nil {
+			return fmt.Errorf("error converting to float: %s", err)
+		}
+		val.SetFloat(vv)
+	case reflect.String:
+		if !jsVal.IsUndefined() && !jsVal.IsNull() {
+			vv, err := jsVal.ToString()
+			if err != nil {
+				return fmt.Errorf("error converting to string: %s", err)
+			}
+			val.SetString(vv)
+		} else {
+			val.SetString("")
+		}
+	case reflect.Struct:
+		if !jsVal.IsObject() {
+			return fmt.Errorf("can't export struct %T into non-object %+v", val.Interface(), jsVal)
+		}
+		obj := jsVal.Object()
+		typ := val.Type()
+		n := typ.NumField()
+		for ii := 0; ii < n; ii++ {
+			structField := typ.Field(ii)
+			if structField.PkgPath != "" {
+				continue
+			}
+			field, err := obj.Get(structField.Name)
+			if err != nil || field.IsUndefined() {
+				field, err = obj.Get(strings.ToLower(structField.Name))
+			}
+			fieldVal := val.Field(ii)
+			if err := v.exportInto(fieldVal, field); err != nil {
+				return err
+			}
+		}
+	case reflect.Slice:
+		if !jsVal.IsArray() {
+			return fmt.Errorf("can't export %+v into slice", jsVal)
+		}
+		obj := jsVal.Object()
+		length := jsVal.Length()
+		val.Set(reflect.MakeSlice(val.Type(), length, length))
+		for ii := 0; ii < length; ii++ {
+			elemVal := val.Index(ii)
+			if elemVal.Kind() == reflect.Ptr && elemVal.IsNil() {
+				elemVal.Set(reflect.New(elemVal.Type().Elem()))
+			}
+			elem, err := obj.Get(strconv.Itoa(ii))
+			if err != nil {
+				return err
+			}
+			if err := v.exportInto(elemVal, elem); err != nil {
+				return err
+			}
+		}
+	case reflect.Ptr:
+		if val.IsNil() {
+			val.Set(reflect.New(val.Type().Elem()))
+		}
+		return v.exportInto(val.Elem(), jsVal)
+	default:
+		return fmt.Errorf("can't export into %T", val.Interface())
+	}
+	return nil
+}
+
+func (v *Value) Export(out interface{}) error {
+	if v != nil {
+		val := reflect.ValueOf(out)
+		if val.Kind() != reflect.Ptr || val.IsNil() {
+			return fmt.Errorf("can't export to non-pointer %T", out)
+		}
+		val = reflect.Indirect(val)
+		return v.exportInto(val, v.val)
+	}
+	return nil
 }
