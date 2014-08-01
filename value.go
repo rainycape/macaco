@@ -2,6 +2,7 @@ package macaco
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/rainycape/otto"
 )
@@ -39,6 +40,10 @@ func (v *Value) IsObject() bool {
 	return v != nil && v.val.IsObject()
 }
 
+func (v *Value) IsArray() bool {
+	return v != nil && v.val.IsArray()
+}
+
 func (v *Value) IsPrimitive() bool {
 	return v != nil && v.val.IsPrimitive()
 }
@@ -52,6 +57,21 @@ func (v *Value) String() string {
 		return v.val.String()
 	}
 	return ""
+}
+
+func (v *Value) Length() int {
+	if v != nil {
+		return v.val.Length()
+	}
+	return -1
+}
+
+func (v *Value) At(idx int) (*Value, error) {
+	length := v.Length()
+	if idx < 0 || idx >= length {
+		return nil, fmt.Errorf("index %d out of bounds", idx)
+	}
+	return v.Get(strconv.Itoa(idx))
 }
 
 func (v *Value) ToBoolean() (bool, error) {
