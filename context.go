@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/rainycape/otto"
-	_ "github.com/rainycape/otto/underscore"
 )
 
 type Error struct {
