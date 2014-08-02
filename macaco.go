@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	api = "http://macaco.io/api/v1"
+	defaultAPI = "http://macaco.io/api/v1"
 )
 
 type Options struct {
@@ -159,7 +159,7 @@ func (m *Macaco) Upload(name string, src interface{}) error {
 	values := make(url.Values)
 	values.Set("name", name)
 	values.Set("access_token", m.token)
-	p := api + "/upload?" + values.Encode()
+	p := apiURL("/upload?" + values.Encode())
 	resp, err := http.Post(p, "application/zip", bytes.NewReader(data))
 	if err != nil {
 		return err
@@ -169,4 +169,12 @@ func (m *Macaco) Upload(name string, src interface{}) error {
 		return fmt.Errorf("error uploading program %s: %s", name, err)
 	}
 	return nil
+}
+
+func apiURL(p string) string {
+	api := defaultAPI
+	if v := os.Getenv("MACACO_API"); v != "" {
+		api = v
+	}
+	return api + p
 }

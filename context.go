@@ -130,7 +130,7 @@ func (c *Context) Load(prog string) error {
 		if c.token != "" {
 			values.Set("access_token", c.token)
 		}
-		p = api + "/load?" + values.Encode()
+		p = apiURL("/load?" + values.Encode())
 	}
 	entry, script := c.cache.getCachedScript(p)
 	if script != nil {
