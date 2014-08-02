@@ -34,6 +34,8 @@ func loadMacacoProgram(args []string) (string, error) {
 		name = args[0]
 	} else {
 		prog = "."
+	}
+	if prog == "." {
 		if abs, _ := filepath.Abs(prog); abs != "" {
 			name = filepath.Base(abs)
 		}
