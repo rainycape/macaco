@@ -3,11 +3,16 @@ package macaco
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
+var (
+	programNameRe = regexp.MustCompile("^[0-9a-zA-Z]+$")
+)
+
 func ProgramNameIsValid(name string) bool {
-	return true
+	return programNameRe.MatchString(name)
 }
 
 func ValidateProgramZipData(data []byte) error {
