@@ -91,6 +91,9 @@ func TestHTTP(t *testing.T) {
 	ctx := newTestingContext(t)
 	ctx.Stdout = &stdout
 	ctx.verbose = false
+	if err := ctx.Load("macaco/runtime"); err != nil {
+		t.Fatal(err)
+	}
 	// Sync calls
 	res1, err := ctx.Call("M.http.get", nil, getURL)
 	if err != nil {
@@ -131,6 +134,9 @@ func TestHTTP(t *testing.T) {
 func TestHTTPError(t *testing.T) {
 	const invalidURL = "http://this-domain-does-not-exist-because-whatever-lets-hope-no-one-registers-it.foobar"
 	ctx := newTestingContext(t)
+	if err := ctx.Load("macaco/runtime"); err != nil {
+		t.Fatal(err)
+	}
 	res, err := ctx.Call("M.http.get", nil, invalidURL)
 	if err != nil {
 		t.Fatal(err)
