@@ -22,12 +22,13 @@ type Error struct {
 }
 
 type Context struct {
-	Stdout  io.Writer
-	Stderr  io.Writer
-	verbose bool
-	token   string
-	vm      *otto.Otto
-	cache   *cache
+	Stdout     io.Writer
+	Stderr     io.Writer
+	HTTPClient *http.Client
+	verbose    bool
+	token      string
+	vm         *otto.Otto
+	cache      *cache
 }
 
 func NewContext() (*Context, error) {

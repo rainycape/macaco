@@ -112,7 +112,10 @@ func (c *Context) httpPost(call otto.FunctionCall) otto.Value {
 }
 
 func (c *Context) httpClient() *http.Client {
-	return &http.Client{}
+	if c.HTTPClient != nil {
+		return c.HTTPClient
+	}
+	return http.DefaultClient
 }
 
 func (c *Context) loadHTTP(obj *otto.Object) {

@@ -24,8 +24,9 @@ type Options struct {
 	// The runtime to load. If empty defaults to "macaco/runtime"
 	Runtime string
 	// Token is the macaco API token used with
-	Token   string
-	Verbose bool
+	Token      string
+	Verbose    bool
+	HTTPClient *http.Client
 }
 
 type Macaco struct {
@@ -43,6 +44,7 @@ func New(opts *Options) (*Macaco, error) {
 	runtime := "macaco/runtime"
 	bare := false
 	if opts != nil {
+		ctx.HTTPClient = opts.HTTPClient
 		bare = opts.Bare
 		if opts.Runtime != "" {
 			runtime = opts.Runtime
