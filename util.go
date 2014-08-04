@@ -2,6 +2,7 @@ package macaco
 
 import (
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -17,6 +18,16 @@ func ProgramNameIsValid(name string) bool {
 
 func ValidateProgramZipData(data []byte) error {
 	return nil
+}
+
+func SplitProgramName(fullName string) (userName string, programName string, versionName string) {
+	userName, programName = path.Split(fullName)
+	userName = strings.Trim(userName, "/")
+	if dot := strings.IndexByte(programName, '.'); dot >= 0 {
+		versionName = programName[dot+1:]
+		programName = programName[:dot]
+	}
+	return
 }
 
 func ListProgramFiles(path string) ([]string, error) {
