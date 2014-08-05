@@ -49,7 +49,7 @@ func New(opts *Options) (*Macaco, error) {
 		if opts.Runtime != "" {
 			runtime = opts.Runtime
 		}
-		mc.token = opts.Token
+		mc.token = expandToken(opts.Token)
 		mc.ctx.token = opts.Token
 		mc.verbose = opts.Verbose
 		mc.ctx.verbose = opts.Verbose

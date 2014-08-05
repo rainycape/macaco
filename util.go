@@ -1,7 +1,9 @@
 package macaco
 
 import (
+	"bufio"
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -50,4 +52,39 @@ func ListProgramFiles(path string) ([]string, error) {
 func looksLikeURL(p string) bool {
 	lower := strings.ToLower(p)
 	return strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://")
+}
+
+func macacoDir() (string, error) {
+	usr, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(usr.HomeDir, ".macaco"), nil
+}
+
+func expandToken(tok string) string {
+	if tok != "" {
+		if dir, _ := macacoDir(); dir != "" {
+			tokensFile := filepath.Join(dir, "tokens")
+			if f, err := os.Open(tokensFile); err == nil {
+				defer f.Close()
+				r := bufio.NewReader(f)
+				for {
+					line, err := r.ReadString('\n')
+					if err != nil {
+						break
+					}
+					fields := strings.Split(line, "=")
+					if len(fields) < 2 {
+						break
+					}
+					if strings.TrimSpace(fields[0]) == tok {
+						tok = strings.TrimSpace(fields[1])
+						break
+					}
+				}
+			}
+		}
+	}
+	return tok
 }

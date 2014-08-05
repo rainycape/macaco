@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"net/http"
 	"os"
-	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -43,11 +42,11 @@ func newCache() *cache {
 }
 
 func (c *cache) root() (string, error) {
-	usr, err := user.Current()
+	dir, err := macacoDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(usr.HomeDir, ".macaco", "cache"), nil
+	return filepath.Join(dir, "cache"), nil
 }
 
 func (c *cache) scriptPath(url string) (string, error) {
