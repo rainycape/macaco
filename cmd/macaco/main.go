@@ -16,6 +16,7 @@ var (
 type globalOptions struct {
 	Token   string `name:"t" help:"Access token for the macaco.io service"`
 	Bare    bool   `help:"Use a bare macaco runtime"`
+	Runtime string `name:"rt" help:"Macaco runtime to use"`
 	Verbose bool   `name:"v" help:"Verbose output"`
 }
 
@@ -57,6 +58,7 @@ func main() {
 		Func: func(opts *globalOptions) {
 			mopts := &macaco.Options{
 				Bare:    opts.Bare,
+				Runtime: opts.Runtime,
 				Token:   opts.Token,
 				Verbose: opts.Verbose,
 			}
