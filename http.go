@@ -41,6 +41,7 @@ func (c *Context) sendHttpRequest(method string, call otto.FunctionCall) otto.Va
 	idx++
 	var qs string
 	data := call.Argument(idx)
+	idx++
 	if data.IsObject() {
 		values := make(url.Values)
 		obj := data.Object()
@@ -67,6 +68,34 @@ func (c *Context) sendHttpRequest(method string, call otto.FunctionCall) otto.Va
 	req, err := http.NewRequest(method, u, nil)
 	if err != nil {
 		return c.responseError(err)
+	}
+	opts := call.Argument(idx)
+	idx++
+	if opts.IsObject() {
+		obj := opts.Object()
+		for _, k := range obj.Keys() {
+			val, err := obj.Get(k)
+			if err != nil {
+				c.Errorf("error getting object key %q: %s", k, err)
+				return otto.Value{}
+			}
+			switch strings.ToLower(k) {
+			case "headers":
+				if !val.IsObject() {
+					c.Errorf("headers must be an object")
+					return otto.Value{}
+				}
+				hobj := val.Object()
+				for _, hk := range hobj.Keys() {
+					hval, err := hobj.Get(hk)
+					if err != nil {
+						c.Errorf("error getting object key %q: %s", k, err)
+						return otto.Value{}
+					}
+					req.Header.Add(hk, hval.String())
+				}
+			}
+		}
 	}
 	if len(qs) > 0 && methodHasBody(method) {
 		req.Body = &readerCloser{strings.NewReader(qs)}
