@@ -37,6 +37,7 @@ func NewContext() (*Context, error) {
 
 func newContext(c *cache) (*Context, error) {
 	vm := otto.New()
+	vm.SetMode(otto.RegExpErrorOnUse)
 	ctx := &Context{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -64,6 +65,7 @@ func (c *Context) loadRuntime() error {
 	c.loadFmt(obj)
 	c.loadImage(obj)
 	obj.Set("load", c.Load)
+	obj.Set("load_script", c.LoadScript)
 	return nil
 }
 
@@ -140,7 +142,7 @@ func (c *Context) Load(prog string) error {
 		}
 	}
 	if entry != nil && len(entry.Data) > 0 {
-		if c.loadData(p, entry.Data, entry.Headers, entry) == nil {
+		if c.loadData(p, entry.Data, nil, entry) == nil {
 			return nil
 		}
 	}
@@ -161,22 +163,31 @@ func (c *Context) Load(prog string) error {
 	if err != nil {
 		return err
 	}
-	return c.loadData(p, data, resp.Header, nil)
+	return c.loadData(p, data, resp, nil)
 }
 
-func (c *Context) loadData(url string, data []byte, headers http.Header, entry *diskEntry) error {
-	script, err := c.vm.Compile(path.Base(url), data)
+func (c *Context) LoadScript(filename string, data string) error {
+	_, err := c.loadScript(filename, []byte(data))
+	return err
+}
+
+func (c *Context) loadScript(filename string, data []byte) (*otto.Script, error) {
+	script, err := c.vm.Compile(filename, data)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := c.vm.Run(script); err != nil {
+		return nil, err
+	}
+	return script, nil
+}
+
+func (c *Context) loadData(url string, data []byte, resp *http.Response, entry *diskEntry) error {
+	script, err := c.loadScript(path.Base(url), data)
 	if err != nil {
 		return err
 	}
-	if _, err := c.vm.Run(script); err != nil {
-		return err
-	}
-	var expires time.Time
-	if entry != nil {
-		expires = entry.Expires
-	}
-	if err := c.cache.cacheScript(url, data, headers, script, expires); err != nil {
+	if err := c.cache.cacheScript(url, data, resp, script, entry); err != nil {
 		c.Debugf("error caching script %s: %s\n", url, err)
 	}
 	return nil

@@ -71,6 +71,7 @@ func (c *Context) sendHttpRequest(method string, call otto.FunctionCall) otto.Va
 	}
 	opts := call.Argument(idx)
 	idx++
+	var cache bool
 	if opts.IsObject() {
 		obj := opts.Object()
 		for _, k := range obj.Keys() {
@@ -94,6 +95,8 @@ func (c *Context) sendHttpRequest(method string, call otto.FunctionCall) otto.Va
 					}
 					req.Header.Add(hk, hval.String())
 				}
+			case "cache":
+				cache, _ = val.ToBoolean()
 			}
 		}
 	}
@@ -101,6 +104,13 @@ func (c *Context) sendHttpRequest(method string, call otto.FunctionCall) otto.Va
 		req.Body = &readerCloser{strings.NewReader(qs)}
 		if method == "POST" {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		}
+	}
+	if cache && !methodHasBody(method) {
+		// Try cache
+		if entry, err := c.cache.cachedEntry(u); err == nil {
+			c.Debugf("cached response from %s\n", u)
+			return c.newHTTPResponse(u, entry.URL, entry.Data, entry.StatusCode, entry.Header)
 		}
 	}
 	resp, err := c.httpClient().Do(req)
@@ -112,11 +122,21 @@ func (c *Context) sendHttpRequest(method string, call otto.FunctionCall) otto.Va
 	if err != nil {
 		return c.responseError(err)
 	}
-	respHeaders := make(map[string]string, len(resp.Header))
-	for k := range resp.Header {
-		respHeaders[k] = resp.Header.Get(k)
+	if cache && !methodHasBody(method) {
+		// Save into cache
+		if err := c.cache.cacheData(u, body, resp); err != nil {
+			c.Debugf("error caching response from %s: %s\n", u, err)
+		}
 	}
-	return c.mustCallValue("new M.http.Response", nil, resp.Request.URL.String(), string(body), resp.StatusCode, u, respHeaders).val
+	return c.newHTTPResponse(u, resp.Request.URL.String(), body, resp.StatusCode, resp.Header)
+}
+
+func (c *Context) newHTTPResponse(reqURL string, respURL string, body []byte, statusCode int, headers http.Header) otto.Value {
+	respHeaders := make(map[string]string, len(headers))
+	for k := range headers {
+		respHeaders[k] = headers.Get(k)
+	}
+	return c.mustCallValue("new M.http.Response", nil, respURL, string(body), statusCode, reqURL, respHeaders).val
 }
 
 func (c *Context) makeHttpRequest(method string, call otto.FunctionCall) otto.Value {
