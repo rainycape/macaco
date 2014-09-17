@@ -102,7 +102,7 @@ func (c *Context) sendHttpRequest(method string, call otto.FunctionCall) otto.Va
 	}
 	if len(qs) > 0 && methodHasBody(method) {
 		req.Body = &readerCloser{strings.NewReader(qs)}
-		if method == "POST" {
+		if method == "POST" && len(req.Header["Content-Type"]) == 0 {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 	}
