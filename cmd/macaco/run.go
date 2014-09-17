@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"macaco"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"gopkgs.com/command.v1"
+
+	"macaco.io/macaco"
 )
 
 var (

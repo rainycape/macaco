@@ -6,7 +6,7 @@ import (
 
 	"gopkgs.com/command.v1"
 
-	"macaco"
+	"macaco.io/macaco"
 )
 
 var (
