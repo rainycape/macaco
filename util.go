@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	programNameRe = regexp.MustCompile("^[0-9a-zA-Z]+$")
+	programNameRe = regexp.MustCompile("^[0-9a-zA-Z][0-9a-zA-Z\\-]+$")
 )
 
 func ProgramNameIsValid(name string) bool {
