@@ -317,6 +317,7 @@ func (c *Context) loadHTML(obj *otto.Object) {
 	htmlObject := c.newMacacoObject("html")
 	htmlObject.Set("parse", c.htmlParse)
 	htmlObject.Set("parse_fragment", c.htmlParseFragment)
+	htmlObject.Set("_parses_doctype_node", true)
 	htmlObject.Set("escape", html.EscapeString)
 	htmlObject.Set("unescape", html.UnescapeString)
 }
