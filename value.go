@@ -196,6 +196,10 @@ func (v *Value) Interface() interface{} {
 	return iface
 }
 
+type valueSetter interface {
+	SetMacacoValue(*Value)
+}
+
 func (v *Value) exportInto(val reflect.Value, jsVal otto.Value) error {
 	switch val.Kind() {
 	case reflect.Bool:
@@ -277,7 +281,13 @@ func (v *Value) exportInto(val reflect.Value, jsVal otto.Value) error {
 		if val.IsNil() {
 			val.Set(reflect.New(val.Type().Elem()))
 		}
-		return v.exportInto(val.Elem(), jsVal)
+		err := v.exportInto(val.Elem(), jsVal)
+		if err == nil {
+			if setter, ok := val.Interface().(valueSetter); ok {
+				setter.SetMacacoValue(&Value{jsVal, v.vm})
+			}
+		}
+		return err
 	default:
 		return fmt.Errorf("can't export into %T", val.Interface())
 	}
@@ -290,7 +300,6 @@ func (v *Value) Export(out interface{}) error {
 		if val.Kind() != reflect.Ptr || val.IsNil() {
 			return fmt.Errorf("can't export to non-pointer %T", out)
 		}
-		val = reflect.Indirect(val)
 		return v.exportInto(val, v.val)
 	}
 	return nil
